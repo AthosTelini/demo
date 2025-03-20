@@ -13,8 +13,8 @@ async function init() {
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
 
+    await listCameras();
     await startCamera();
-    await listCameras(); // Agora chamamos depois de iniciar a câmera
 }
 
 async function listCameras() {
@@ -23,6 +23,13 @@ async function listCameras() {
 
     if (videoDevices.length === 0) {
         console.error("Nenhuma câmera encontrada.");
+        return;
+    }
+
+    // Tenta definir a câmera traseira como padrão ao iniciar
+    const backCamera = videoDevices.find(device => device.label.toLowerCase().includes("back"));
+    if (backCamera) {
+        currentCameraIndex = videoDevices.indexOf(backCamera);
     }
 }
 
