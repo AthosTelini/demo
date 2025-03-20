@@ -1,106 +1,59 @@
-const URL = "./my_model/";
+// A URL do seu modelo no Teachable Machine
+const URL = "https://teachablemachine.withgoogle.com/models/OkRIzWiJQ/";
+
 let model, webcam, labelContainer, maxPredictions;
-let currentCameraIndex = 0;
-let videoDevices = [];
-let previousPredictions = [];
-let lastUpdate = 0;
-const updateInterval = 500;
 
+// Função de inicialização do modelo e configuração da webcam
 async function init() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+  const modelURL = URL + "model.json";
+  const metadataURL = URL + "metadata.json";
 
-    model = await tmImage.load(modelURL, metadataURL);
-    maxPredictions = model.getTotalClasses();
+  // Carregar o modelo
+  model = await tmImage.load(modelURL, metadataURL);
+  maxPredictions = model.getTotalClasses();
 
-    await listCameras();
-    await startCamera();
+  // Configurar a câmera para a câmera traseira
+  const constraints = {
+    video: {
+      facingMode: "environment", // Configura a câmera traseira como padrão
+      width: 200,
+      height: 200
+    }
+  };
+
+  // Criar o objeto webcam com as configurações
+  webcam = new tmImage.Webcam(200, 200, false); // Não precisa de flip para a câmera traseira
+  await webcam.setup(constraints); // Solicita acesso à câmera
+  await webcam.play(); // Começa a capturar vídeo
+  window.requestAnimationFrame(loop); // Inicia o loop de captura
+
+  // Adiciona a webcam ao DOM
+  document.getElementById("webcam-container").innerHTML = "";
+  document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+  // Cria os elementos para exibir os resultados das previsões
+  labelContainer = document.getElementById("label-container");
+  labelContainer.innerHTML = "";
+  for (let i = 0; i < maxPredictions; i++) {
+    labelContainer.appendChild(document.createElement("div"));
+  }
 }
 
-async function listCameras() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    videoDevices = devices.filter(device => device.kind === "videoinput");
-
-    if (videoDevices.length === 0) {
-        console.error("Nenhuma câmera encontrada.");
-        return;
-    }
-
-    // Tenta definir a câmera traseira como padrão ao iniciar
-    const backCamera = videoDevices.find(device => device.label.toLowerCase().includes("back"));
-    if (backCamera) {
-        currentCameraIndex = videoDevices.indexOf(backCamera);
-    }
-}
-
-async function startCamera() {
-    if (webcam) {
-        await webcam.stop();
-    }
-
-    const constraints = {
-        video: {
-            deviceId: videoDevices[currentCameraIndex]?.deviceId || undefined,
-            width: 400,
-            height: 400
-        }
-    };
-
-    webcam = new tmImage.Webcam(400, 400);
-    await webcam.setup(constraints);
-    await webcam.play();
-    window.requestAnimationFrame(loop);
-
-    document.getElementById("webcam-container").innerHTML = "";
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
-
-    labelContainer = document.getElementById("label-container");
-    labelContainer.innerHTML = "";
-    for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-    }
-}
-
-function switchCamera() {
-    if (videoDevices.length > 1) {
-        currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
-        startCamera();
-    } else {
-        console.warn("Apenas uma câmera disponível.");
-    }
-}
-
+// Loop para atualizar a câmera e fazer a previsão
 async function loop() {
-    webcam.update();
-    await predict();
-    window.requestAnimationFrame(loop);
+  webcam.update(); // Atualiza o frame da webcam
+  await predict(); // Chama a função de previsão
+  window.requestAnimationFrame(loop); // Chama novamente o loop
 }
 
+// Função de previsão do modelo
 async function predict() {
-    const now = Date.now();
-    const prediction = await model.predict(webcam.canvas);
-
-    previousPredictions = prediction.map(p => p.probability * 100);
-
-    if (now - lastUpdate > updateInterval) {
-        updateUI(prediction);
-        lastUpdate = now;
-    }
-}
-
-function updateUI(prediction) {
-    for (let i = 0; i < maxPredictions; i++) {
-        const probability = previousPredictions[i] || 0;
-        const color = getColor(probability);
-
-        labelContainer.childNodes[i].innerHTML =
-            `<span class="class-name">${prediction[i].className}</span>: 
-             <span class="probability" style="color: ${color};">${probability.toFixed(2)}%</span>`;
-    }
-}
-
-function getColor(value) {
-    const red = Math.min(255, Math.max(0, (value / 100) * 255));
-    const blue = Math.min(255, Math.max(0, ((100 - value) / 100) * 255));
-    return `rgb(${red}, 0, ${blue})`;
+  const prediction = await model.predict(webcam.canvas);
+  for (let i = 0; i < maxPredictions; i++) {
+    const classPrediction =
+      prediction[i].className +
+      ": " +
+      prediction[i].probability.toFixed(2);
+    labelContainer.childNodes[i].innerHTML = classPrediction; // Exibe a previsão
+  }
 }
