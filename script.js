@@ -4,7 +4,7 @@ let currentCameraIndex = 0;
 let videoDevices = [];
 let previousPredictions = [];
 let lastUpdate = 0;
-const updateInterval = 500; 
+const updateInterval = 500;
 
 async function init() {
     const modelURL = URL + "model.json";
@@ -13,13 +13,17 @@ async function init() {
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
 
-    await listCameras(); 
-    await startCamera(); 
+    await startCamera();
+    await listCameras(); // Agora chamamos depois de iniciar a câmera
 }
 
 async function listCameras() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     videoDevices = devices.filter(device => device.kind === "videoinput");
+
+    if (videoDevices.length === 0) {
+        console.error("Nenhuma câmera encontrada.");
+    }
 }
 
 async function startCamera() {
@@ -30,9 +34,8 @@ async function startCamera() {
     const constraints = {
         video: {
             deviceId: videoDevices[currentCameraIndex]?.deviceId || undefined,
-            width: 200,
-            height: 200,
-            facingMode: currentCameraIndex === 0 ? "user" : "environment"
+            width: 400,
+            height: 400
         }
     };
 
@@ -40,12 +43,10 @@ async function startCamera() {
     await webcam.setup(constraints);
     await webcam.play();
     window.requestAnimationFrame(loop);
-    
-   
 
     document.getElementById("webcam-container").innerHTML = "";
     document.getElementById("webcam-container").appendChild(webcam.canvas);
-    
+
     labelContainer = document.getElementById("label-container");
     labelContainer.innerHTML = "";
     for (let i = 0; i < maxPredictions; i++) {
@@ -54,8 +55,12 @@ async function startCamera() {
 }
 
 function switchCamera() {
-    currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
-    startCamera();
+    if (videoDevices.length > 1) {
+        currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
+        startCamera();
+    } else {
+        console.warn("Apenas uma câmera disponível.");
+    }
 }
 
 async function loop() {
@@ -81,15 +86,14 @@ function updateUI(prediction) {
         const probability = previousPredictions[i] || 0;
         const color = getColor(probability);
 
-        labelContainer.childNodes[i].innerHTML = 
+        labelContainer.childNodes[i].innerHTML =
             `<span class="class-name">${prediction[i].className}</span>: 
              <span class="probability" style="color: ${color};">${probability.toFixed(2)}%</span>`;
     }
 }
 
-// Função para calcular a cor dinamicamente
 function getColor(value) {
-    const red = Math.min(255, Math.max(0, (value / 100) * 255));  
-    const blue = Math.min(255, Math.max(0, ((100 - value) / 100) * 255)); 
-    return `rgb(${red}, 0, ${blue})`; 
+    const red = Math.min(255, Math.max(0, (value / 100) * 255));
+    const blue = Math.min(255, Math.max(0, ((100 - value) / 100) * 255));
+    return `rgb(${red}, 0, ${blue})`;
 }
