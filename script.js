@@ -1,59 +1,42 @@
 const URL = "./my_model/";
 let model, webcam, labelContainer, maxPredictions;
-let currentCameraIndex = 0;
-let videoDevices = [];
-let previousPredictions = [];
-let lastUpdate = 0;
-const updateInterval = 500;
 
-async function init() {
+async function loadModel() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
-
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
-
-    await listCameras();
-    await startCamera();
 }
 
-async function listCameras() {
+async function getRearCamera() {
+    // Obtém todos os dispositivos de vídeo
     const devices = await navigator.mediaDevices.enumerateDevices();
-    videoDevices = devices.filter(device => device.kind === "videoinput");
+    // Filtra para encontrar a câmera traseira
+    const rearCamera = devices.find(device => device.kind === 'videoinput' && device.label.toLowerCase().includes('back'));
 
-    if (videoDevices.length === 0) {
-        console.error("Nenhuma câmera encontrada.");
-        return;
-    }
-
-    // Tenta definir a câmera traseira como padrão ao iniciar
-    const backCamera = videoDevices.find(device => device.label.toLowerCase().includes("back"));
-    if (backCamera) {
-        currentCameraIndex = videoDevices.indexOf(backCamera);
+    if (rearCamera) {
+        // Se a câmera traseira for encontrada, retorna o deviceId
+        return rearCamera.deviceId;
+    } else {
+        console.log('Câmera traseira não encontrada. Usando a câmera padrão.');
+        return null; // Se não encontrar, retorna null para usar a câmera padrão
     }
 }
 
-async function startCamera() {
-    if (webcam) {
-        await webcam.stop();
-    }
+async function init() {
+    await loadModel();
+    
+    const rearCameraId = await getRearCamera();
 
-    const constraints = {
-        video: {
-            deviceId: videoDevices[currentCameraIndex]?.deviceId || undefined,
-            width: 400,
-            height: 400
-        }
-    };
-
-    webcam = new tmImage.Webcam(400, 400);
-    await webcam.setup(constraints);
+    // Inicializa a webcam com a câmera traseira (se encontrada) ou padrão
+    webcam = new tmImage.Webcam(400, 400, rearCameraId ? { video: { deviceId: rearCameraId } } : undefined);
+    await webcam.setup();
     await webcam.play();
     window.requestAnimationFrame(loop);
-
+    
     document.getElementById("webcam-container").innerHTML = "";
     document.getElementById("webcam-container").appendChild(webcam.canvas);
-
+    
     labelContainer = document.getElementById("label-container");
     labelContainer.innerHTML = "";
     for (let i = 0; i < maxPredictions; i++) {
@@ -61,46 +44,44 @@ async function startCamera() {
     }
 }
 
-function switchCamera() {
-    if (videoDevices.length > 1) {
-        currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
-        startCamera();
-    } else {
-        console.warn("Apenas uma câmera disponível.");
-    }
-}
-
 async function loop() {
     webcam.update();
-    await predict();
+    await predict(webcam.canvas);
     window.requestAnimationFrame(loop);
 }
 
-async function predict() {
-    const now = Date.now();
-    const prediction = await model.predict(webcam.canvas);
+async function analyzeImage() {
+    if (!model) {
+        await loadModel();
+    }
 
-    previousPredictions = prediction.map(p => p.probability * 100);
+    const fileInput = document.getElementById("imageUpload");
+    const imageContainer = document.getElementById("image-container");
 
-    if (now - lastUpdate > updateInterval) {
-        updateUI(prediction);
-        lastUpdate = now;
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = async function() {
+                imageContainer.innerHTML = "";
+                imageContainer.appendChild(img);
+                await predict(img);
+            };
+        };
+
+        reader.readAsDataURL(file);
     }
 }
 
-function updateUI(prediction) {
+async function predict(image) {
+    const prediction = await model.predict(image);
+
+    labelContainer = document.getElementById("label-container");
+    labelContainer.innerHTML = "";
     for (let i = 0; i < maxPredictions; i++) {
-        const probability = previousPredictions[i] || 0;
-        const color = getColor(probability);
-
-        labelContainer.childNodes[i].innerHTML =
-            `<span class="class-name">${prediction[i].className}</span>: 
-             <span class="probability" style="color: ${color};">${probability.toFixed(2)}%</span>`;
+        labelContainer.innerHTML += `<div>${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%</div>`;
     }
-}
-
-function getColor(value) {
-    const red = Math.min(255, Math.max(0, (value / 100) * 255));
-    const blue = Math.min(255, Math.max(0, ((100 - value) / 100) * 255));
-    return `rgb(${red}, 0, ${blue})`;
 }
