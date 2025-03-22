@@ -9,25 +9,34 @@
 </head>
 <body>
     <div class="container" style="text-align: center">
-        <div class="jumbotron" style="background-color: #9e2f2f; color: white">
+        <div class="jumbotron" style="background-color: #312f9e; color: white">
             <h1>IFSULDEMINAS - Teachable Machine Image Model</h1>
             <p>Campus Machado</p>
         </div>
         <div>Pragas de café</div>
         
+        <!-- Botão para iniciar a câmera -->
         <button type="button" class="btn btn-primary" onclick="init()">Iniciar Câmera</button>
+
+        <!-- Input para selecionar imagem -->
         <input type="file" id="imageUpload" class="btn btn-secondary" accept="image/*" onchange="analyzeImage()">
         
+        <!-- Área para exibição da webcam -->
         <div id="webcam-container"></div>
+        
+        <!-- Área para exibição da imagem carregada -->
         <div id="image-container"></div>
+
+        <!-- Área para exibir os resultados da predição -->
         <div id="label-container"></div>
     </div>
     
+    <!-- Bibliotecas externas necessárias para o funcionamento -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script src="script.js"></script>
 
-    <footer style="background-color: #9e2f2f; color: white; text-align: center; padding: 20px; margin-top: 20px;">
+    <footer style="background-color: #312f9e; color: white; text-align: center; padding: 20px; margin-top: 20px;">
         <p>&copy; 2025 ATHOS B. TELINI - Todos os direitos reservados</p>
     </footer>
 </body>

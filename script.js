@@ -73,6 +73,8 @@ async function analyzeImage() {
         };
 
         reader.readAsDataURL(file);
+    } else {
+        alert("Por favor, escolha uma imagem para análise.");
     }
 }
 
