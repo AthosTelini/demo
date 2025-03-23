@@ -1,3 +1,61 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* Estilizando o footer */
+footer {
+    background-color: rgb(10, 145, 71);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+/* Ajustando a altura do jumbotron */
+.jumbotron {
+    background-color: #f3f3f3;
+    color: rgb(10, 145, 71);
+    padding: 40px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Container para garantir que o conteúdo ocupe o restante da altura */
+.content {
+    flex-grow: 1;
+}
+
+/* Layout flexível para a página */
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Container para garantir que o conteúdo principal ocupe o restante da altura */
+.content {
+    flex-grow: 1; /* Faz o conteúdo crescer para ocupar o espaço restante */
+}
+
+/* Footer fixado no final da página */
+footer {
+    background-color: rgb(10, 145, 71);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    position: relative;
+    width: 100%;
+}
+
+/* Layout flexível para a página */
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 .class-name {
     font-weight: bold;
     color: #3f3f3f;

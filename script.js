@@ -81,9 +81,29 @@ async function analyzeImage() {
 async function predict(image) {
     const prediction = await model.predict(image);
 
-    labelContainer = document.getElementById("label-container");
-    labelContainer.innerHTML = "";
+    const labelContainer = document.getElementById("label-container");
+    labelContainer.innerHTML = ""; // Limpa os resultados anteriores
+
     for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.innerHTML += `<div>${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(2)}%</div>`;
+        const probability = (prediction[i].probability * 100).toFixed(2);
+
+        // Calcular a cor com base na probabilidade
+        let red = Math.min(255, Math.floor(probability * 2.55)); // Vermelho aumenta com a probabilidade
+        let green = 0; // Verde é fixo para 0
+        let blue = Math.max(0, Math.floor(255 - probability * 2.55)); // Azul diminui com a probabilidade
+
+        // Definir a cor final
+        let color = `rgb(${red}, ${green}, ${blue})`;
+
+        // Adicionar as predições na tabela
+        labelContainer.innerHTML += `
+            <tr>
+                <td style="color: ${color};">${prediction[i].className}</td>
+                <td style="color: ${color};">${probability}%</td>
+            </tr>
+        `;
     }
 }
+
+
+
