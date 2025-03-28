@@ -1,7 +1,7 @@
 const URL = "./my_model/";
 let model, webcam, labelContainer, maxPredictions;
 let frameCounter = 0;
-const updateInterval = 60; // Atualizar os resultados a cada 10 quadros
+const updateInterval = 60; 
 
 async function loadModel() {
     const modelURL = URL + "model.json";
