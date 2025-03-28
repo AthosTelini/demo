@@ -1,5 +1,7 @@
 const URL = "./my_model/";
 let model, webcam, labelContainer, maxPredictions;
+let frameCounter = 0;
+const updateInterval = 60; // Atualizar os resultados a cada 10 quadros
 
 async function loadModel() {
     const modelURL = URL + "model.json";
@@ -9,26 +11,14 @@ async function loadModel() {
 }
 
 async function getRearCamera() {
-    // Obtém todos os dispositivos de vídeo
     const devices = await navigator.mediaDevices.enumerateDevices();
-    // Filtra para encontrar a câmera traseira
     const rearCamera = devices.find(device => device.kind === 'videoinput' && device.label.toLowerCase().includes('back'));
-
-    if (rearCamera) {
-        // Se a câmera traseira for encontrada, retorna o deviceId
-        return rearCamera.deviceId;
-    } else {
-        console.log('Câmera traseira não encontrada. Usando a câmera padrão.');
-        return null; // Se não encontrar, retorna null para usar a câmera padrão
-    }
+    return rearCamera ? rearCamera.deviceId : null;
 }
 
 async function init() {
     await loadModel();
-    
     const rearCameraId = await getRearCamera();
-
-    // Inicializa a webcam com a câmera traseira (se encontrada) ou padrão
     webcam = new tmImage.Webcam(400, 400, rearCameraId ? { video: { deviceId: rearCameraId } } : undefined);
     await webcam.setup();
     await webcam.play();
@@ -46,7 +36,10 @@ async function init() {
 
 async function loop() {
     webcam.update();
-    await predict(webcam.canvas);
+    if (frameCounter % updateInterval === 0) {
+        await predict(webcam.canvas);
+    }
+    frameCounter++;
     window.requestAnimationFrame(loop);
 }
 
@@ -54,14 +47,11 @@ async function analyzeImage() {
     if (!model) {
         await loadModel();
     }
-
     const fileInput = document.getElementById("imageUpload");
     const imageContainer = document.getElementById("image-container");
-
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const reader = new FileReader();
-
         reader.onload = async function(event) {
             const img = new Image();
             img.src = event.target.result;
@@ -71,7 +61,6 @@ async function analyzeImage() {
                 await predict(img);
             };
         };
-
         reader.readAsDataURL(file);
     } else {
         alert("Por favor, escolha uma imagem para análise.");
@@ -80,22 +69,14 @@ async function analyzeImage() {
 
 async function predict(image) {
     const prediction = await model.predict(image);
-
     const labelContainer = document.getElementById("label-container");
-    labelContainer.innerHTML = ""; // Limpa os resultados anteriores
-
+    labelContainer.innerHTML = "";
     for (let i = 0; i < maxPredictions; i++) {
         const probability = (prediction[i].probability * 100).toFixed(2);
-
-        // Calcular a cor com base na probabilidade
-        let red = Math.min(255, Math.floor(probability * 2.55)); // Vermelho aumenta com a probabilidade
-        let green = 0; // Verde é fixo para 0
-        let blue = Math.max(0, Math.floor(255 - probability * 2.55)); // Azul diminui com a probabilidade
-
-        // Definir a cor final
+        let red = Math.min(255, Math.floor(probability * 2.55));
+        let green = 0;
+        let blue = Math.max(0, Math.floor(255 - probability * 2.55));
         let color = `rgb(${red}, ${green}, ${blue})`;
-
-        // Adicionar as predições na tabela
         labelContainer.innerHTML += `
             <tr>
                 <td style="color: ${color};">${prediction[i].className}</td>
@@ -104,6 +85,3 @@ async function predict(image) {
         `;
     }
 }
-
-
-
